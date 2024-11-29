@@ -1,0 +1,52 @@
+Code:
+ input wire Dlx,
+ input wire Ux,
+ output wire AB_not_plus_BC
+);
+ assign AB_not_plus_BC = (Ax & ~Dlx) | (Dlx & Ux);
+endmodule
+// Define the non-restoring square root calculator
+module non_restoring_sqrt(
+ input wire clk,
+ input wire start,
+ input wire [7:0] N,
+ output reg [3:0] Q,
+ output reg ready
+);
+ reg [3:0] state;
+ reg [7:0] A;
+ reg [7:0] S;
+ reg [3:0] count;
+ wire U;
+ wire rt_output;
+// Instantiate RT gate
+rt_gate rt_inst(
+ .Ax(A[7]),
+ .Dlx(Q[0]),
+ .Ux(1'b0),
+ .AB_not_plus_BC(rt_output)
+);
+always @(posedge clk) begin
+if (start) begin
+ A <= N;
+ Q <= 0;
+ count <= 4;
+ state <= 1;
+ ready <= 0;
+end else if (state == 1) begin
+ S <= {A[6:0], 2'b00} - (Q << 1 | 1);
+ if (rt_output) begin Q <= (Q << 1) | 1;
+ end else begin
+ Q <= Q << 1;
+ end
+ A <= {S[6:0], A[5:4]};
+ count <= count - 1;
+ if (count == 0) state <= 2;
+ end else if (state == 2) begin
+ ready <= 1;
+ state <= 0;
+ end
+ end
+// U is the quotient bit determined by the rt_gate output
+assign U = rt_output;
+endmodule
